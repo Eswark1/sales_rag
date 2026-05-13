@@ -1,0 +1,103 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Sales RAG Platform – Docker Compose
+# Compatible with WSL2 + NVIDIA GPU (optional)
+#
+# Usage:
+#   docker compose up -d                     # CPU only
+#   docker compose --profile gpu up -d       # with NVIDIA GPU (requires nvidia-container-toolkit)
+#
+# First run: Ollama will download the model (~9 GB). Be patient.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── LLM Server (Ollama) ──────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: sales_ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    # GPU profile – comment out if no NVIDIA GPU
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ── Model pull helper (runs once, then exits) ────────────────────────────
+  model-pull:
+    image: ollama/ollama:latest
+    container_name: sales_model_pull
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "ollama pull ${OLLAMA_MODEL:-deepseek-coder-v2:16b-lite-instruct-q4_K_M}"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    restart: "no"
+
+  # ── ChromaDB (vector store) ──────────────────────────────────────────────
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: sales_chroma
+    restart: unless-stopped
+    volumes:
+      - chroma_data:/chroma/chroma
+    ports:
+      - "8002:8000"
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  # ── Application (FastAPI + Streamlit) ────────────────────────────────────
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: sales_app
+    restart: unless-stopped
+    depends_on:
+      ollama:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    volumes:
+      - app_data:/data
+    ports:
+      - "8000:8000"   # FastAPI
+      - "8501:8501"   # Streamlit
+    env_file: ../.env
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - CHROMA_PATH=/data/chroma
+      - DB_PATH=/data/sales.db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  ollama_data:
+  chroma_data:
+  app_data:

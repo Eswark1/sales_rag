@@ -1,0 +1,11 @@
+db/sales.db
+training/data/sql_pairs.jsonl
+training/output/
+.env
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.DS_Store
+chroma/
+/data/
