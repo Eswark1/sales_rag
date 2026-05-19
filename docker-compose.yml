@@ -14,7 +14,11 @@ version: "3.9"
 services:
 
   # ── LLM Server (Ollama) ──────────────────────────────────────────────────
+  # NOTE: Use profile "ollama" only when Ollama is NOT already running on the
+  # host (e.g. via WSL). Default setup reuses the host Ollama on port 11434.
+  #   docker compose --profile ollama up -d
   ollama:
+    profiles: [ollama]
     image: ollama/ollama:latest
     container_name: sales_ollama
     restart: unless-stopped
@@ -40,6 +44,7 @@ services:
 
   # ── Model pull helper (runs once, then exits) ────────────────────────────
   model-pull:
+    profiles: [ollama]
     image: ollama/ollama:latest
     container_name: sales_model_pull
     depends_on:
@@ -64,7 +69,7 @@ services:
       - IS_PERSISTENT=TRUE
       - ANONYMIZED_TELEMETRY=FALSE
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/8000"]
       interval: 20s
       timeout: 5s
       retries: 5
@@ -72,13 +77,11 @@ services:
   # ── Application (FastAPI + Streamlit) ────────────────────────────────────
   app:
     build:
-      context: ..
+      context: .
       dockerfile: docker/Dockerfile
     container_name: sales_app
     restart: unless-stopped
     depends_on:
-      ollama:
-        condition: service_healthy
       chromadb:
         condition: service_healthy
     volumes:
@@ -86,11 +89,13 @@ services:
     ports:
       - "8000:8000"   # FastAPI
       - "8501:8501"   # Streamlit
-    env_file: ../.env
+    env_file: .env
     environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - CHROMA_PATH=/data/chroma
       - DB_PATH=/data/sales.db
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

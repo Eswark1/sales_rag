@@ -4,13 +4,17 @@ Streamlit app – two tabs:
   2. Dashboard (pre-built KPI charts)
 """
 
+import os
+
 import streamlit as st
 import requests
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-API_URL = "http://app:8000"   # Docker internal; change to http://localhost:8000 for local dev
+# Defaults to Docker-internal name; override with API_URL env var for local dev:
+#   export API_URL=http://localhost:8000
+API_URL = os.environ.get("API_URL", "http://app:8000")
 
 st.set_page_config(page_title="Sales Intelligence", layout="wide", page_icon="📊")
 st.title("Sales Intelligence Platform")
