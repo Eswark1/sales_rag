@@ -8,7 +8,7 @@ import random
 import os
 from datetime import datetime, timedelta
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "sales.db")
+DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "sales.db"))
 SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schema.sql")
 
 random.seed(42)

@@ -13,6 +13,7 @@ LABEL maintainer="sales-rag"
 # System deps for sentence-transformers / chromadb
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libgomp1 \
+        curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

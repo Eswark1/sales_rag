@@ -37,7 +37,11 @@ class AnswerResponse(BaseModel):
 
 @app.post("/ask", response_model=AnswerResponse)
 def ask(req: QuestionRequest):
-    result = answer(req.question, use_rag=req.use_rag)
+    try:
+        result = answer(req.question, use_rag=req.use_rag)
+    except Exception as exc:
+        logger.exception("Unhandled error in /ask")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return AnswerResponse(question=req.question, **result)

@@ -6,7 +6,7 @@ Hybrid TAG + RAG orchestrator.
 """
 
 import ollama
-from app.agents.sql_agent import question_to_sql, narrate, run_tag
+from app.agents.sql_agent import question_to_sql, narrate, run_tag, _client as _ollama_client
 from app.agents.rag_agent import retrieve
 from app.db import run_query
 from app.config import settings
@@ -47,7 +47,7 @@ def answer(question: str, use_rag: bool = True) -> dict:
             f"SQL result ({len(rows)} rows):\n{data_str}\n\n"
             f"Relevant activity/notes context:\n{ctx_str}"
         )
-        response = ollama.chat(
+        response = _ollama_client.chat(
             model=settings.ollama_model,
             messages=[
                 {"role": "system", "content": _SYNTH_SYSTEM},
@@ -55,7 +55,7 @@ def answer(question: str, use_rag: bool = True) -> dict:
             ],
             options={"temperature": 0.3},
         )
-        final_answer = response["message"]["content"].strip()
+        final_answer = response.message.content.strip()
     else:
         final_answer = narrate(question, sql, rows)
 

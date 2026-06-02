@@ -91,7 +91,7 @@ services:
       - "8501:8501"   # Streamlit
     env_file: .env
     environment:
-      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_HOST=http://host.docker.internal:11434
       - CHROMA_PATH=/data/chroma
       - DB_PATH=/data/sales.db
     extra_hosts:

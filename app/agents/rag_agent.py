@@ -3,6 +3,8 @@ RAG engine: embed free-text columns → vector search → return top-k snippets.
 Indexes: activities.summary, leads.notes, opportunities.notes
 """
 
+from __future__ import annotations
+
 import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 from app.config import settings

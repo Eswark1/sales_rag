@@ -7,6 +7,8 @@ import ollama
 from app.config import settings
 from app.db import get_schema, run_query
 
+_client = ollama.Client(host=settings.ollama_host)
+
 _SQL_SYSTEM = """\
 You are a SQLite expert. Given the schema below and a business question,
 return ONLY a valid SQLite SELECT statement — no markdown fences, no explanation.
@@ -34,7 +36,7 @@ write a concise, plain-English summary for a C-level executive.
 
 def question_to_sql(question: str) -> str:
     schema = get_schema()
-    response = ollama.chat(
+    response = _client.chat(
         model=settings.ollama_model,
         messages=[
             {"role": "system", "content": _SQL_SYSTEM.format(schema=schema)},
@@ -42,7 +44,7 @@ def question_to_sql(question: str) -> str:
         ],
         options={"temperature": 0.0},
     )
-    raw = response["message"]["content"].strip()
+    raw = response.message.content.strip()
     # Strip accidental markdown fences
     raw = re.sub(r"```sql\s*", "", raw, flags=re.IGNORECASE)
     raw = re.sub(r"```\s*", "", raw)
@@ -56,7 +58,7 @@ def narrate(question: str, sql: str, rows: list[dict]) -> str:
         f"SQL executed:\n{sql}\n\n"
         f"Result rows ({len(rows)} total, showing up to 50):\n{data_str}"
     )
-    response = ollama.chat(
+    response = _client.chat(
         model=settings.ollama_model,
         messages=[
             {"role": "system", "content": _NARRATE_SYSTEM},
@@ -64,7 +66,7 @@ def narrate(question: str, sql: str, rows: list[dict]) -> str:
         ],
         options={"temperature": 0.3},
     )
-    return response["message"]["content"].strip()
+    return response.message.content.strip()
 
 
 def run_tag(question: str) -> dict:

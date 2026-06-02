@@ -12,9 +12,10 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-# Defaults to Docker-internal name; override with API_URL env var for local dev:
-#   export API_URL=http://localhost:8000
-API_URL = os.environ.get("API_URL", "http://app:8000")
+# Both FastAPI and Streamlit run in the same container, so localhost is correct.
+# Override with API_URL env var when running services separately (e.g. different containers):
+#   export API_URL=http://app:8000
+API_URL = os.environ.get("API_URL", "http://localhost:8000")
 
 st.set_page_config(page_title="Sales Intelligence", layout="wide", page_icon="📊")
 st.title("Sales Intelligence Platform")
